@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>给宝宝的留言 🌙</title>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    background: #0d0a1a;
+    font-family: 'Noto Serif SC', serif;
+    overflow-x: hidden;
+    cursor: default;
+  }
+
+  /* 星空背景 */
+  #stars {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: white;
+    animation: twinkle var(--dur) ease-in-out infinite;
+    opacity: 0;
+  }
+
+  @keyframes twinkle {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: var(--op); transform: scale(1); }
+  }
+
+  /* 渐变光晕 */
+  .glow-bg {
+    position: fixed;
+    width: 600px; height: 600px;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .glow-1 {
+    background: radial-gradient(circle, rgba(255,150,180,0.18), transparent 70%);
+    top: -100px; left: -100px;
+    animation: driftA 12s ease-in-out infinite;
+  }
+  .glow-2 {
+    background: radial-gradient(circle, rgba(180,100,220,0.15), transparent 70%);
+    bottom: -100px; right: -100px;
+    animation: driftB 15s ease-in-out infinite;
+  }
+  @keyframes driftA {
+    0%,100% { transform: translate(0,0); }
+    50% { transform: translate(60px, 40px); }
+  }
+  @keyframes driftB {
+    0%,100% { transform: translate(0,0); }
+    50% { transform: translate(-50px, -30px); }
+  }
+
+  /* 流星 */
+  .meteor {
+    position: fixed;
+    width: 2px;
+    height: 80px;
+    background: linear-gradient(to bottom, rgba(255,200,220,0.9), transparent);
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 1;
+    animation: shoot var(--s) linear infinite;
+    opacity: 0;
+    top: var(--top);
+    left: var(--left);
+    transform: rotate(25deg);
+  }
+  @keyframes shoot {
+    0% { opacity: 0; transform: rotate(25deg) translateY(-100px); }
+    10% { opacity: 1; }
+    80% { opacity: 0.6; }
+    100% { opacity: 0; transform: rotate(25deg) translateY(600px); }
+  }
+
+  /* 主内容 */
+  .container {
+    position: relative;
+    z-index: 10;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px 60px;
+  }
+
+  /* 开场动画遮罩 */
+  .curtain {
+    position: fixed;
+    inset: 0;
+    background: #0d0a1a;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1s ease;
+  }
+  .curtain.fade-out {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .moon {
+    font-size: 64px;
+    animation: moonFloat 3s ease-in-out infinite;
+    margin-bottom: 20px;
+  }
+  @keyframes moonFloat {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+
+  .curtain-text {
+    font-family: 'Ma Shan Zheng', cursive;
+    color: rgba(255,200,220,0.8);
+    font-size: 18px;
+    letter-spacing: 4px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 0.5; }
+    50% { opacity: 1; }
+  }
+
+  /* 卡片主体 */
+  .card {
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,180,210,0.15);
+    border-radius: 28px;
+    padding: 48px 36px;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 0 60px rgba(255,100,150,0.08), inset 0 1px 0 rgba(255,255,255,0.07);
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 1.2s ease, transform 1.2s ease;
+  }
+  .card.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .tag {
+    display: inline-block;
+    background: rgba(255,150,180,0.15);
+    border: 1px solid rgba(255,150,180,0.3);
+    color: rgba(255,180,210,0.9);
+    font-size: 12px;
+    letter-spacing: 3px;
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 28px;
+  }
+
+  .greeting {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: clamp(32px, 8vw, 48px);
+    color: #fff;
+    line-height: 1.3;
+    margin-bottom: 8px;
+  }
+  .greeting span {
+    background: linear-gradient(135deg, #ffb3cc, #e88aff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: rgba(255,180,210,0.5);
+    letter-spacing: 2px;
+    margin-bottom: 36px;
+  }
+
+  .divider {
+    width: 40px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(255,150,180,0.4), transparent);
+    margin: 0 auto 36px;
+  }
+
+  .message {
+    font-size: 16px;
+    line-height: 2.1;
+    color: rgba(255,240,248,0.85);
+    font-weight: 300;
+    white-space: pre-line;
+    margin-bottom: 40px;
+  }
+
+  /* 爱心跳动 */
+  .heart-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .heart {
+    font-size: 22px;
+    animation: heartbeat 1.4s ease-in-out infinite;
+  }
+  @keyframes heartbeat {
+    0%,100% { transform: scale(1); }
+    14% { transform: scale(1.25); }
+    28% { transform: scale(1); }
+    42% { transform: scale(1.15); }
+    56% { transform: scale(1); }
+  }
+  .heart-line-text {
+    font-size: 13px;
+    color: rgba(255,180,210,0.6);
+    letter-spacing: 2px;
+  }
+
+  /* 签名 */
+  .signature {
+    text-align: right;
+    color: rgba(255,200,230,0.55);
+    font-size: 13px;
+    letter-spacing: 1px;
+    line-height: 2;
+  }
+  .signature strong {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 18px;
+    color: rgba(255,180,210,0.8);
+    font-weight: 400;
+  }
+
+  /* 飘落花瓣 */
+  .petal {
+    position: fixed;
+    pointer-events: none;
+    z-index: 2;
+    font-size: var(--fs);
+    animation: fall var(--fall) linear infinite;
+    top: -40px;
+    left: var(--x);
+    opacity: 0.7;
+  }
+  @keyframes fall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0.7; }
+    100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+  }
+
+  /* 许愿按钮 */
+  .wish-btn {
+    display: block;
+    margin: 32px auto 0;
+    background: rgba(255,150,180,0.12);
+    border: 1px solid rgba(255,150,180,0.3);
+    color: rgba(255,180,210,0.8);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    padding: 12px 28px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  .wish-btn:hover {
+    background: rgba(255,150,180,0.22);
+    border-color: rgba(255,150,180,0.5);
+    color: #fff;
+    box-shadow: 0 0 20px rgba(255,100,150,0.2);
+  }
+
+  /* 许愿弹出 */
+  .wish-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
+  }
+  .wish-popup.show {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .wish-box {
+    background: rgba(20,10,30,0.95);
+    border: 1px solid rgba(255,150,180,0.25);
+    border-radius: 24px;
+    padding: 36px 28px;
+    max-width: 340px;
+    width: 100%;
+    text-align: center;
+    transform: scale(0.9);
+    transition: transform 0.4s ease;
+  }
+  .wish-popup.show .wish-box { transform: scale(1); }
+  .wish-box p {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 22px;
+    color: rgba(255,200,230,0.9);
+    line-height: 1.8;
+    margin-bottom: 28px;
+  }
+  .close-btn {
+    background: rgba(255,150,180,0.15);
+    border: 1px solid rgba(255,150,180,0.3);
+    color: rgba(255,180,210,0.7);
+    font-family: 'Noto Serif SC', serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 10px 24px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+  .close-btn:hover { background: rgba(255,150,180,0.28); color:#fff; }
+
+  /* 倒计时 */
+  .countdown-section {
+    margin-top: 36px;
+    text-align: center;
+  }
+  .countdown-label {
+    font-size: 12px;
+    letter-spacing: 4px;
+    color: rgba(255,180,210,0.5);
+    margin-bottom: 18px;
+  }
+  .countdown-blocks {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .cd-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .cd-num {
+    background: rgba(255,150,180,0.1);
+    border: 1px solid rgba(255,150,180,0.25);
+    border-radius: 14px;
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 30px;
+    color: #ffb3cc;
+    box-shadow: 0 0 18px rgba(255,100,150,0.1);
+    position: relative;
+    overflow: hidden;
+  }
+  .cd-num::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: rgba(255,255,255,0.03);
+    border-radius: 14px 14px 0 0;
+  }
+  .cd-num.flip { animation: flipNum 0.35s ease; }
+  @keyframes flipNum {
+    0% { transform: scaleY(1); }
+    45% { transform: scaleY(0.05); }
+    100% { transform: scaleY(1); }
+  }
+  .cd-unit {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: rgba(255,180,210,0.4);
+  }
+  .countdown-sub {
+    margin-top: 16px;
+    font-size: 13px;
+    color: rgba(255,180,210,0.55);
+    letter-spacing: 1px;
+    animation: subtlePulse 3s ease-in-out infinite;
+  }
+  @keyframes subtlePulse {
+    0%,100% { opacity: 0.55; }
+    50% { opacity: 1; }
+  }
+  .arrived-msg {
+    font-family: 'Ma Shan Zheng', cursive;
+    font-size: 24px;
+    color: #ffb3cc;
+    animation: subtlePulse 2s ease-in-out infinite;
+  }
+</style>
+</head>
+<body>
+
+<!-- 开场遮罩 -->
+<div class="curtain" id="curtain">
+  <div class="moon">🌙</div>
+  <div class="curtain-text">宝宝，有人给你留言了…</div>
+</div>
+
+<!-- 星空 -->
+<div id="stars"></div>
+<div class="glow-bg glow-1"></div>
+<div class="glow-bg glow-2"></div>
+
+<!-- 流星 -->
+<div class="meteor" style="--s:4s;--top:10%;--left:20%;animation-delay:0s"></div>
+<div class="meteor" style="--s:6s;--top:25%;--left:55%;animation-delay:2s"></div>
+<div class="meteor" style="--s:5s;--top:5%;--left:80%;animation-delay:4.5s"></div>
+
+<!-- 花瓣 -->
+<div class="petal" style="--x:8%;--fs:14px;--fall:8s;animation-delay:0s">🌸</div>
+<div class="petal" style="--x:22%;--fs:10px;--fall:11s;animation-delay:3s">✿</div>
+<div class="petal" style="--x:45%;--fs:12px;--fall:9s;animation-delay:1.5s">🌸</div>
+<div class="petal" style="--x:68%;--fs:8px;--fall:13s;animation-delay:5s">✿</div>
+<div class="petal" style="--x:85%;--fs:13px;--fall:10s;animation-delay:2.5s">🌸</div>
+<div class="petal" style="--x:92%;--fs:9px;--fall:7s;animation-delay:4s">✿</div>
+
+<!-- 主内容 -->
+<div class="container">
+  <div class="card" id="card">
+    <div class="tag">🌙 下班了，辛苦啦</div>
+
+    <div class="greeting">宝宝，<br><span>终于下班啦～</span></div>
+    <div class="subtitle">久违的夜班，终于结束了</div>
+
+    <div class="divider"></div>
+
+    <div class="message">辛苦啦！久违的夜班终于结束了 🌙
+
+可惜今天不能陪你到下班和回家，只能在这里给你一个大大的隔空抱抱。我知道处理那么多 task 你一定很累了，如果肚子饿了，一定要吃点好吃的犒劳一下自己，然后好好地睡个大大的懒觉～
+
+一个人回家的时候，可能会觉得周围有些安静和孤独，但希望你能感受到，z 老师的心一直都陪在你身边。
+
+无论什么时候，总有一个人会在这里默默支持你。z 老师会是可靠的后盾！所以如果最后下班前碰到不顺心的事，我们先深呼吸～消消气、缓一缓。可以想想你的宝宝我，然后再尽情跟我吐槽，我一定都会好好看！
+
+虽然明天我要上班，不能时刻陪着宝宝，但 z 老师永远会在有时间的第一刻就回应你。
+
+现在的距离只是暂时的，马上我们就要相见啦。其实，我早就在心里偷偷期待那一天很久很久了。
+
+晚安，我的宝贝。今天也要做一个好梦哦 💭</div>
+
+    <div class="heart-line">
+      <span class="heart">💗</span>
+      <span class="heart-line-text">z 老师一直都在</span>
+      <span class="heart">💗</span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="signature">
+      写于你还在上班的深夜<br>
+      <strong>z 老师留</strong>
+    </div>
+
+    <button class="wish-btn" onclick="showWish()">✨ 今晚的小心愿</button>
+
+    <div class="countdown-section">
+      <div class="divider" style="margin-bottom:24px;margin-top:32px;"></div>
+      <div class="countdown-label">🗓️ 距离相见还有</div>
+      <div class="countdown-blocks" id="countdownBlocks">
+        <div class="cd-block">
+          <div class="cd-num" id="cd-days">--</div>
+          <div class="cd-unit">天</div>
+        </div>
+        <div class="cd-block">
+          <div class="cd-num" id="cd-hours">--</div>
+          <div class="cd-unit">时</div>
+        </div>
+        <div class="cd-block">
+          <div class="cd-num" id="cd-mins">--</div>
+          <div class="cd-unit">分</div>
+        </div>
+        <div class="cd-block">
+          <div class="cd-num" id="cd-secs">--</div>
+          <div class="cd-unit">秒</div>
+        </div>
+      </div>
+      <div class="countdown-sub" id="countdownSub">马上就要见面啦 💗</div>
+    </div>
+  </div>
+</div>
+
+<!-- 许愿弹窗 -->
+<div class="wish-popup" id="wishPopup">
+  <div class="wish-box">
+    <p>希望宝宝<br>永远不累、不委屈<br>睡个好觉 🌙<br>明天也开开心心的</p>
+    <button class="close-btn" onclick="closeWish()">知道啦 ❤️</button>
+  </div>
+</div>
+
+<script>
+  // 生成星星
+  const starsEl = document.getElementById('stars');
+  for (let i = 0; i < 160; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2.5 + 0.5;
+    s.style.cssText = `
+      width:${size}px;height:${size}px;
+      top:${Math.random()*100}%;left:${Math.random()*100}%;
+      --dur:${(Math.random()*4+2).toFixed(1)}s;
+      --op:${(Math.random()*0.7+0.2).toFixed(2)};
+      animation-delay:${(Math.random()*6).toFixed(1)}s;
+    `;
+    starsEl.appendChild(s);
+  }
+
+  // 开场动画
+  window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.getElementById('curtain').classList.add('fade-out');
+      setTimeout(() => {
+        document.getElementById('curtain').style.display = 'none';
+        document.getElementById('card').classList.add('visible');
+      }, 1000);
+    }, 2200);
+  });
+
+  // 许愿弹窗
+  function showWish() {
+    document.getElementById('wishPopup').classList.add('show');
+  }
+  function closeWish() {
+    document.getElementById('wishPopup').classList.remove('show');
+  }
+
+  // 倒计时（从页面打开时刻起，计算6天后）
+  (function() {
+    const openTime = new Date();
+    const target = new Date(openTime.getTime() + 6 * 24 * 60 * 60 * 1000);
+
+    const els = {
+      days: document.getElementById('cd-days'),
+      hours: document.getElementById('cd-hours'),
+      mins: document.getElementById('cd-mins'),
+      secs: document.getElementById('cd-secs'),
+    };
+    const prev = { days: null, hours: null, mins: null, secs: null };
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    function flip(el) {
+      el.classList.remove('flip');
+      void el.offsetWidth;
+      el.classList.add('flip');
+    }
+
+    function tick() {
+      const now = new Date();
+      const diff = target - now;
+      if (diff <= 0) {
+        document.getElementById('countdownBlocks').innerHTML =
+          '<div class="arrived-msg">🎉 是见面的日子啦！</div>';
+        document.getElementById('countdownSub').style.display = 'none';
+        return;
+      }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+
+      const vals = { days: pad(d), hours: pad(h), mins: pad(m), secs: pad(s) };
+      for (const k in vals) {
+        if (vals[k] !== prev[k]) {
+          els[k].textContent = vals[k];
+          flip(els[k]);
+          prev[k] = vals[k];
+        }
+      }
+    }
+
+    tick();
+    setInterval(tick, 1000);
+  })();
+
+
+  document.addEventListener('click', function(e) {
+    if (e.target.closest('.card') || e.target.closest('.wish-popup')) return;
+    for (let i = 0; i < 6; i++) {
+      const sp = document.createElement('div');
+      sp.style.cssText = `
+        position:fixed;left:${e.clientX}px;top:${e.clientY}px;
+        pointer-events:none;z-index:999;font-size:${10+Math.random()*10}px;
+        animation:sparkle 0.8s ease forwards;
+        transform:translate(-50%,-50%);
+      `;
+      sp.textContent = ['✨','💫','⭐','🌟'][Math.floor(Math.random()*4)];
+      document.body.appendChild(sp);
+      setTimeout(()=>sp.remove(), 900);
+    }
+  });
+</script>
+<style>
+@keyframes sparkle {
+  0% { opacity:1; transform:translate(-50%,-50%) scale(0.5); }
+  100% { opacity:0; transform:translate(calc(-50% + ${(Math.random()-0.5)*60}px), calc(-50% - 60px)) scale(1.2); }
+}
+</style>
+</body>
+</html>
